@@ -1,0 +1,141 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <http://www.example.org/eakg#> .
+@prefix archimate: <http://www.opengroup.org/xsd/archimate/3.0#> .
+@base <http://www.example.org/eakg> .
+
+#################################################################
+# ONTOLOGY HEADER
+#################################################################
+
+<http://www.example.org/eakg> a owl:Ontology ;
+    rdfs:label "EAKG Base Graph — Construction Pattern" ;
+    rdfs:comment """Generic mechanism for Phase 1 (Knowledge Graph Creation / base graph)
+of the Model-based EA Knowledge Graph construction process (Glaser, Ali,
+Sallinger & Bork, 2022), applied per the ArchiMate Model Exchange File
+Format (The Open Group, 2019, v3.1).
+
+This file defines ONLY the reusable construction pattern behind Rules 1-3.
+It does not enumerate any ArchiMate element or relationship types — that
+closed vocabulary is supplied externally, at population time, from the
+actual model being translated.""" .
+
+
+#################################################################
+# RULE 1 — ELEMENTS (VERTICES)
+#
+# No new vocabulary is minted here: elements are typed and described
+# entirely with standard RDF/RDFS/OWL terms. The closed ArchiMate
+# vocabulary (e.g. a class such as archimate:BusinessActor) supplies the
+# rdf:type target once an actual model is loaded. Pattern, for one
+# element instance:
+#
+#   <element-id> a owl:NamedIndividual, archimate:SomeLeafType ;
+#       rdfs:label   "Element name"^^xsd:string ;
+#       rdfs:comment "Element documentation, if present"^^xsd:string .
+#
+# - Identity  -> the ArchiMate identifier becomes the individual's IRI
+# - Role      -> subject or object only, never a predicate
+# - Name      -> rdfs:label
+# - Doc       -> rdfs:comment
+# - Base type -> rdf:type against the closed vocabulary (leaf types only)
+#################################################################
+
+
+#################################################################
+# RULE 2 — RELATIONS (EDGES)
+#
+# Also no new vocabulary: a relation's own ArchiMate identifier is cast
+# directly as an owl:ObjectProperty, avoiding reification/RDF-star. Its
+# "core type" again comes from the closed ArchiMate vocabulary (e.g.
+# archimate:Association). Pattern, for one relation instance:
+#
+#   <relation-id> a owl:ObjectProperty ;
+#       rdfs:subPropertyOf archimate:CoreRelationshipType ;
+#       rdfs:comment "Relation documentation, if present"^^xsd:string .
+#
+#   <source-element-id> <relation-id> <target-element-id> .
+#
+# - Identity/structure -> ArchiMate identifier becomes the predicate IRI
+# - Doc                 -> rdfs:comment on the predicate itself
+# - Base typing         -> rdfs:subPropertyOf the closed relationship type
+#################################################################
+
+
+#################################################################
+# RULE 3 — PROPERTY DEFINITIONS AND INSTANCES (TRIPARTITE PATTERN)
+#
+# This is the one part of the pattern needing genuinely new, domain-
+# independent vocabulary, since RDF/OWL has no built-in separation
+# between a reusable property definition and a per-element value of it.
+# Nothing below references ArchiMate-specific types.
+#################################################################
+
+ex:PropertyDefinition a owl:Class ;
+    rdfs:label "Property Definition"@en ;
+    rdfs:comment "A standalone, globally reusable property definition: a name/key plus an XSD datatype. Mirrors ArchiMate's global property manager, where definitions exist independently of their instances." .
+
+ex:PropertyInstance a owl:Class ;
+    rdfs:label "Property Instance"@en ;
+    rdfs:comment "One concrete value of a property definition, attached to exactly one element or relation." .
+
+ex:hasProperty a owl:ObjectProperty ;
+    rdfs:label "has property"@en ;
+    rdfs:range ex:PropertyInstance ;
+    rdfs:comment "Links an element, or a relation (via its ID-as-IRI), to one of its property instance nodes. Domain intentionally left open since both element individuals and relation predicate IRIs may be subjects." .
+
+ex:isInstanceOf a owl:ObjectProperty ;
+    rdfs:label "is instance of"@en ;
+    rdfs:domain ex:PropertyInstance ;
+    rdfs:range ex:PropertyDefinition ;
+    rdfs:comment "Links a property instance back to the global property definition it realizes." .
+
+ex:hasValue a owl:DatatypeProperty ;
+    rdfs:label "has value"@en ;
+    rdfs:domain ex:PropertyInstance ;
+    rdfs:comment "The literal value of a property instance. Its XSD datatype must match the one declared on the linked ex:PropertyDefinition via ex:hasDataType." .
+
+ex:hasKey a owl:DatatypeProperty ;
+    rdfs:label "has key"@en ;
+    rdfs:domain ex:PropertyDefinition ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The property definition's name/key, as registered in the ArchiMate global property manager." .
+
+ex:hasDataType a owl:DatatypeProperty ;
+    rdfs:label "has data type"@en ;
+    rdfs:domain ex:PropertyDefinition ;
+    rdfs:range xsd:anyURI ;
+    rdfs:comment "IRI of the XSD datatype for this definition, e.g. xsd:string, xsd:integer, xsd:boolean, xsd:float." .
+
+#################################################################
+# RULE 3 — DYNAMIC CONSTRUCTION PATTERN
+#
+# Like elements (Rule 1) and relations (Rule 2), both the definition and
+# the instance are dynamically identified — the definition by its own
+# ArchiMate identifier, the instance by a computed IRI. Pattern, for one
+# property definition:
+#
+#   <property-definition-id> a ex:PropertyDefinition ;
+#       ex:hasKey      "property name"^^xsd:string ;
+#       ex:hasDataType xsd:string .   # or xsd:integer / xsd:boolean / xsd:float
+#
+# Pattern, for one property instance — identity is constructed by
+# concatenating the subject id, the property-definition id, and an
+# ordinal index (so one subject can hold several instances of the same
+# definition):
+#
+#   <subject-id>-<property-definition-id>-<ordinal> a ex:PropertyInstance ;
+#       ex:isInstanceOf <property-definition-id> ;
+#       ex:hasValue "actual value" .
+#
+#   <subject-id> ex:hasProperty <subject-id>-<property-definition-id>-<ordinal> .
+#
+# - Identity (definition) -> ArchiMate identifier becomes the definition's IRI
+# - Identity (instance)   -> concatenation of subject id + definition id + ordinal
+# - Key / type            -> ex:hasKey / ex:hasDataType, on the definition
+# - Value                 -> ex:hasValue, on the instance
+# - Linking               -> ex:hasProperty (subject -> instance),
+#                            ex:isInstanceOf (instance -> definition)
+#################################################################
