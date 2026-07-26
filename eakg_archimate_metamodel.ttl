@@ -1,0 +1,378 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <http://www.example.org/eakg#> .
+@prefix archimate: <http://www.opengroup.org/xsd/archimate/3.0#> .
+@base <http://www.example.org/eakg> .
+
+#################################################################
+# ONTOLOGY HEADER
+#################################################################
+#
+# This file is an EXTENSION, not a redefinition, of the base
+# construction pattern in  eakg_base_pattern.ttl.  It adds no new
+# rules and reuses the exact same predicates the base pattern and
+# the translator (archimate_to_eakg.py) already rely on:
+#
+#   - Elements are typed with  rdf:type  against archimate: classes
+#     (see Rule 1 / pass2_elements()).
+#   - Relationships are typed with  rdfs:subPropertyOf  against
+#     archimate: core relationship types (see Rule 2 / pass3_relationships()).
+#
+# SCOPE:  this file encodes ONLY the abstract ArchiMate meta-model
+# backbone shown in the Open Group reference diagrams:
+#
+#   Fig. 1  - Top-Level Hierarchy of ArchiMate Concepts
+#   Fig. 4  - Hierarchy of Behavior and Structure Elements
+#   (Composite Element) - Grouping / Location
+#   Fig. 21 - Overview of Relationships
+#
+# It deliberately does NOT enumerate the ~50 concrete, layer-specific
+# leaf types (e.g. archimate:BusinessActor, archimate:ApplicationService,
+# archimate:Node). Those leaves are supplied dynamically, per model, at
+# population time by resolve_archimate_class() in the translator - this
+# file only supplies the abstract classes/properties they will attach to
+# via rdf:type / rdfs:subClassOf, once such leaves are added.
+#
+# DESIGN NOTE ON "Concept":
+# In the ArchiMate spec, Element, Relationship and RelationshipConnector
+# are all sub-types of the single abstract notion "Concept" (Fig. 1 / 4).
+# In this EAKG, however, Elements are realised as RDF classes/individuals
+# (vertices) while Relationships are realised as RDF properties (edges) -
+# two different RDF citizens by design (Rules 1-2). OWL has no single
+# axiom that is simultaneously a valid subClassOf and subPropertyOf
+# parent, so "Concept" is declared here only as a documentation-level
+# owl:Class: it anchors rdfs:comment/rdfs:label for the ArchiMate notion,
+# but no formal rdfs:subClassOf/subPropertyOf edge is asserted from
+# archimate:Relationship up to archimate:Concept. The Element branch and
+# the RelationshipConnector branch, being vertex-like, ARE formally
+# chained to archimate:Concept via rdfs:subClassOf.
+#################################################################
+
+archimate:Concept a owl:Class ;
+    rdfs:label "Concept"@en ;
+    rdfs:comment """Abstract root of the ArchiMate metamodel (Open Group Fig. 1 / 4):
+generalises Element, Relationship and RelationshipConnector. Declared here
+for documentation/anchoring purposes only - see the design note above for
+why no formal subClassOf/subPropertyOf axiom spans the Element and
+Relationship branches in this ontology."""@en .
+
+
+#################################################################
+# ELEMENT BRANCH  (owl:Class / rdfs:subClassOf)
+# Source: Fig. 1 (top-level split) and Fig. 4 (Behavior/Structure detail)
+#################################################################
+
+archimate:Element a owl:Class ;
+    rdfs:subClassOf archimate:Concept ;
+    rdfs:label "Element"@en ;
+    rdfs:comment "Abstract ArchiMate element. All concrete, layer-specific leaf types (e.g. archimate:BusinessActor) supplied at population time are rdfs:subClassOf one of this class's descendants."@en .
+
+# --- Behavior Element branch --------------------------------------
+
+archimate:BehaviorElement a owl:Class ;
+    rdfs:subClassOf archimate:Element ;
+    rdfs:label "Behavior Element"@en ;
+    rdfs:comment "Represents units of activity performed by one or more active structure elements."@en .
+
+archimate:ExternalBehaviorElement a owl:Class ;
+    rdfs:subClassOf archimate:BehaviorElement ;
+    rdfs:label "External Behavior Element"@en ;
+    rdfs:comment "Behavior element exposed externally (e.g. a service)."@en .
+
+archimate:InternalBehaviorElement a owl:Class ;
+    rdfs:subClassOf archimate:BehaviorElement ;
+    rdfs:label "Internal Behavior Element"@en ;
+    rdfs:comment "Behavior element internal to the structure that performs it (e.g. a process, function, interaction)."@en .
+
+archimate:Event a owl:Class ;
+    rdfs:subClassOf archimate:BehaviorElement ;
+    rdfs:label "Event"@en ;
+    rdfs:comment "Something that happens and triggers behavior."@en .
+
+# --- Structure Element branch --------------------------------------
+
+archimate:StructureElement a owl:Class ;
+    rdfs:subClassOf archimate:Element ;
+    rdfs:label "Structure Element"@en ;
+    rdfs:comment "Represents structural (static) aspects of the enterprise: entities capable of, or acted upon by, behavior."@en .
+
+archimate:ActiveStructureElement a owl:Class ;
+    rdfs:subClassOf archimate:StructureElement ;
+    rdfs:label "Active Structure Element"@en ;
+    rdfs:comment "Structure element capable of performing behavior (an actor of some kind)."@en .
+
+archimate:ExternalActiveStructureElement a owl:Class ;
+    rdfs:subClassOf archimate:ActiveStructureElement ;
+    rdfs:label "External Active Structure Element"@en ;
+    rdfs:comment "Active structure element as seen from outside the structure that contains it (e.g. a role, interface)."@en .
+
+archimate:InternalActiveStructureElement a owl:Class ;
+    rdfs:subClassOf archimate:ActiveStructureElement ;
+    rdfs:label "Internal Active Structure Element"@en ;
+    rdfs:comment "Active structure element internal to the structure it belongs to (e.g. an actor, component, node)."@en .
+
+archimate:PassiveStructureElement a owl:Class ;
+    rdfs:subClassOf archimate:StructureElement ;
+    rdfs:label "Passive Structure Element"@en ;
+    rdfs:comment "Structure element upon which behavior is performed (e.g. a business object, data object, artifact)."@en .
+
+# --- Motivation Element branch --------------------------------------
+
+archimate:MotivationElement a owl:Class ;
+    rdfs:subClassOf archimate:Element ;
+    rdfs:label "Motivation Element"@en ;
+    rdfs:comment "Represents the reasons underlying the architecture's design (e.g. stakeholder, driver, goal, requirement)."@en .
+
+# --- Composite Element branch --------------------------------------
+
+archimate:CompositeElement a owl:Class ;
+    rdfs:subClassOf archimate:Element ;
+    rdfs:label "Composite Element"@en ;
+    rdfs:comment "Element that aggregates or is composed of one or more other concepts."@en .
+
+archimate:Grouping a owl:Class ;
+    rdfs:subClassOf archimate:CompositeElement ;
+    rdfs:label "Grouping"@en ;
+    rdfs:comment "Aggregates concepts that share some common trait, without a formal architectural relationship."@en .
+
+archimate:Location a owl:Class ;
+    rdfs:subClassOf archimate:CompositeElement ;
+    rdfs:label "Location"@en ;
+    rdfs:comment "A conceptual or physical place, or position, where concepts are located or performed."@en .
+
+
+#################################################################
+# RELATIONSHIPCONNECTOR BRANCH  (owl:Class / rdfs:subClassOf)
+# Source: Fig. 4 / Fig. 21. Junctions carry their own ArchiMate
+# identifier and act as pass-through connection points between
+# relationships, so - like Elements - they are realised as
+# vertices (owl:Class + individual), not as predicates.
+#################################################################
+
+archimate:RelationshipConnector a owl:Class ;
+    rdfs:subClassOf archimate:Concept ;
+    rdfs:label "Relationship Connector"@en ;
+    rdfs:comment "Junction used to connect multiple relationships of the same type."@en .
+
+archimate:AndJunction a owl:Class ;
+    rdfs:subClassOf archimate:RelationshipConnector ;
+    rdfs:label "(And) Junction"@en ;
+    rdfs:comment "Junction where all incoming/outgoing relationships hold simultaneously (logical AND)."@en .
+
+archimate:OrJunction a owl:Class ;
+    rdfs:subClassOf archimate:RelationshipConnector ;
+    rdfs:label "Or Junction"@en ;
+    rdfs:comment "Junction where at least one of the incoming/outgoing relationships holds (logical OR)."@en .
+
+
+#################################################################
+# RELATIONSHIP BRANCH  (owl:ObjectProperty / rdfs:subPropertyOf)
+# Source: Fig. 21 (Overview of Relationships).
+# Kept consistent with Rule 2 / pass3_relationships(), which declares
+# each concrete relationship's core type as an owl:ObjectProperty and
+# chains the per-model relationship identifier to it via
+# rdfs:subPropertyOf.
+#################################################################
+
+archimate:Relationship a owl:ObjectProperty ;
+    rdfs:label "Relationship"@en ;
+    rdfs:comment "Abstract ArchiMate relationship. Per-model relationship identifiers are rdfs:subPropertyOf one of this property's descendants."@en .
+
+# --- Structural Relationship ----------------------------------------
+
+archimate:StructuralRelationship a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:Relationship ;
+    rdfs:label "Structural Relationship"@en ;
+    rdfs:comment "Models the static coherence of concepts of the same or different types."@en .
+
+archimate:Realization a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:StructuralRelationship ;
+    rdfs:label "Realization"@en ;
+    rdfs:comment "Indicates that an entity plays a critical role in the creation, achievement, sustenance, or operation of a more abstract entity."@en .
+
+archimate:Assignment a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:StructuralRelationship ;
+    rdfs:label "Assignment"@en ;
+    rdfs:comment "Expresses the allocation of responsibility, performance of behavior, storage, or execution."@en .
+
+archimate:Aggregation a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:StructuralRelationship ;
+    rdfs:label "Aggregation"@en ;
+    rdfs:comment "Indicates that a concept groups a number of other concepts."@en .
+
+archimate:Composition a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:StructuralRelationship ;
+    rdfs:label "Composition"@en ;
+    rdfs:comment "Indicates that a concept consists of one or more other concepts."@en .
+
+# --- Dependency Relationship ----------------------------------------
+
+archimate:DependencyRelationship a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:Relationship ;
+    rdfs:label "Dependency Relationship"@en ;
+    rdfs:comment "Models that a concept's structure or behavior provides something that another concept needs."@en .
+
+archimate:Association a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DependencyRelationship ;
+    rdfs:label "Association"@en ;
+    rdfs:comment "Models an unspecified relationship, or one not represented by another ArchiMate relationship type."@en .
+
+archimate:Influence a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DependencyRelationship ;
+    rdfs:label "Influence"@en ;
+    rdfs:comment "Models that a concept affects the implementation or achievement of some motivation element."@en .
+
+archimate:Access a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DependencyRelationship ;
+    rdfs:label "Access"@en ;
+    rdfs:comment "Models the ability of behavior and active structure elements to observe or act upon passive structure elements."@en .
+
+archimate:Serving a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DependencyRelationship ;
+    rdfs:label "Serving"@en ;
+    rdfs:comment "Models that a concept provides its functionality to another concept."@en .
+
+# --- Dynamic Relationship ----------------------------------------
+
+archimate:DynamicRelationship a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:Relationship ;
+    rdfs:label "Dynamic Relationship"@en ;
+    rdfs:comment "Models temporal dependencies between concepts, as manifested in processes, functions, interactions and events."@en .
+
+archimate:Triggering a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DynamicRelationship ;
+    rdfs:label "Triggering"@en ;
+    rdfs:comment "Models a temporal or causal relationship between concepts."@en .
+
+archimate:Flow a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:DynamicRelationship ;
+    rdfs:label "Flow"@en ;
+    rdfs:comment "Models the transfer of information, goods, money, or value between concepts."@en .
+
+# --- Other Relationship ----------------------------------------
+
+archimate:OtherRelationship a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:Relationship ;
+    rdfs:label "Other Relationship"@en ;
+    rdfs:comment "Catch-all category for ArchiMate relationships that are neither structural, dependency, nor dynamic."@en .
+
+archimate:Specialization a owl:ObjectProperty ;
+    rdfs:subPropertyOf archimate:OtherRelationship ;
+    rdfs:label "Specialization"@en ;
+    rdfs:comment "Models that a concept is a specific form of another, more general, concept."@en .
+
+
+#################################################################
+# LEAF NODE MAPPINGS  (rdfs:subClassOf only - no rdf:type asserted)
+#
+# Every concrete, layer-specific ArchiMate 3.1 element type is linked
+# here to its abstract metamodel parent from the branches declared
+# above. This section adds ONLY the subClassOf edge for each leaf -
+# it never asserts  archimate:LeafType a owl:Class  itself. That
+# declaration stays dynamic: the translator already emits it at
+# population time (pass2_elements() / resolve_archimate_class()),
+# once a leaf actually occurs in a real model. Declaring it again
+# here would just be a redundant, harmless duplicate triple - so
+# it is deliberately left out to keep this file a pure "backbone"
+# extension rather than a second source of class declarations.
+#
+# Relationship leaf types are NOT repeated here: Rule 2's ten core
+# relationship types (Realization, Assignment, ... Specialization)
+# ARE already the leaf level - see the RELATIONSHIP BRANCH above.
+#################################################################
+
+# --- Motivation layer -------------------------------------------------
+
+archimate:Stakeholder  rdfs:subClassOf archimate:MotivationElement .
+archimate:Driver       rdfs:subClassOf archimate:MotivationElement .
+archimate:Assessment   rdfs:subClassOf archimate:MotivationElement .
+archimate:Goal         rdfs:subClassOf archimate:MotivationElement .
+archimate:Outcome      rdfs:subClassOf archimate:MotivationElement .
+archimate:Principle    rdfs:subClassOf archimate:MotivationElement .
+archimate:Requirement  rdfs:subClassOf archimate:MotivationElement .
+archimate:Constraint   rdfs:subClassOf archimate:Requirement .
+archimate:Meaning      rdfs:subClassOf archimate:MotivationElement .
+archimate:Value        rdfs:subClassOf archimate:MotivationElement .
+
+# --- Strategy layer -----------------------------------------------------
+# Resource sits directly under Structure Element (not further split into
+# Active/Passive by the spec); Capability/Course of Action/Value Stream
+# sit directly under Behavior Element (not split into Internal/External).
+
+archimate:Resource       rdfs:subClassOf archimate:StructureElement .
+archimate:Capability     rdfs:subClassOf archimate:BehaviorElement .
+archimate:CourseOfAction rdfs:subClassOf archimate:BehaviorElement .
+archimate:ValueStream    rdfs:subClassOf archimate:BehaviorElement .
+
+# --- Business layer -------------------------------------------------
+
+archimate:BusinessActor         rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:BusinessRole          rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:BusinessCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:BusinessInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement .
+
+archimate:BusinessProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:BusinessFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:BusinessInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:BusinessEvent       rdfs:subClassOf archimate:Event .
+archimate:BusinessService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+
+archimate:BusinessObject   rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:Contract         rdfs:subClassOf archimate:BusinessObject .
+archimate:Representation   rdfs:subClassOf archimate:PassiveStructureElement .
+
+archimate:Product rdfs:subClassOf archimate:CompositeElement .
+
+# --- Application layer -------------------------------------------------
+
+archimate:ApplicationComponent     rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:ApplicationCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:ApplicationInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement .
+
+archimate:ApplicationFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:ApplicationInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:ApplicationProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:ApplicationEvent       rdfs:subClassOf archimate:Event .
+archimate:ApplicationService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+
+archimate:DataObject rdfs:subClassOf archimate:PassiveStructureElement .
+
+# --- Technology layer (incl. Physical extension) -------------------------
+
+archimate:Node                   rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:Device                 rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:SystemSoftware         rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:TechnologyCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:Path                   rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:CommunicationNetwork   rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:TechnologyInterface    rdfs:subClassOf archimate:ExternalActiveStructureElement .
+
+archimate:TechnologyFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:TechnologyProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:TechnologyInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:TechnologyEvent       rdfs:subClassOf archimate:Event .
+archimate:TechnologyService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+
+archimate:Artifact rdfs:subClassOf archimate:PassiveStructureElement .
+
+# Physical elements (Technology layer extension)
+archimate:Equipment           rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:Facility            rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:DistributionNetwork rdfs:subClassOf archimate:InternalActiveStructureElement .
+archimate:Material            rdfs:subClassOf archimate:PassiveStructureElement .
+
+# --- Implementation & Migration layer -------------------------------------------------
+
+archimate:WorkPackage       rdfs:subClassOf archimate:InternalBehaviorElement .
+archimate:Deliverable       rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:ImplementationEvent rdfs:subClassOf archimate:Event .
+archimate:Plateau           rdfs:subClassOf archimate:CompositeElement .
+
+# Gap does not cleanly fit the structure/behavior/composite split used
+# elsewhere in the spec (it represents a stated difference between two
+# plateaus, not a thing that acts or is acted upon), so it is linked
+# directly to the generic archimate:Element rather than guessed into
+# one of its descendants.
+archimate:Gap rdfs:subClassOf archimate:Element .

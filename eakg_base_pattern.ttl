@@ -33,13 +33,15 @@ actual model being translated.""" .
 # element instance:
 #
 #   <element-id> a owl:NamedIndividual, archimate:SomeLeafType ;
-#       rdfs:label   "Element name"^^xsd:string ;
-#       rdfs:comment "Element documentation, if present"^^xsd:string .
+#       rdfs:label   "Element name"@en ;
+#       rdfs:label   "Nom de l'élément"@fr ;
+#       rdfs:comment "Element documentation"@en ;
+#       rdfs:comment "Documentation de l'élément"@fr .
 #
 # - Identity  -> the ArchiMate identifier becomes the individual's IRI
 # - Role      -> subject or object only, never a predicate
-# - Name      -> rdfs:label
-# - Doc       -> rdfs:comment
+# - Name      -> rdfs:label with language tag (all <name> entries)
+# - Doc       -> rdfs:comment with language tag (all <documentation> entries)
 # - Base type -> rdf:type against the closed vocabulary (leaf types only)
 #################################################################
 
@@ -54,88 +56,55 @@ actual model being translated.""" .
 #
 #   <relation-id> a owl:ObjectProperty ;
 #       rdfs:subPropertyOf archimate:CoreRelationshipType ;
-#       rdfs:comment "Relation documentation, if present"^^xsd:string .
+#       rdfs:comment "Relation documentation"@en ;
+#       rdfs:comment "Documentation de la relation"@fr .
 #
 #   <source-element-id> <relation-id> <target-element-id> .
 #
 # - Identity/structure -> ArchiMate identifier becomes the predicate IRI
-# - Doc                 -> rdfs:comment on the predicate itself
+# - Doc                 -> rdfs:comment on the predicate itself (all language variants)
 # - Base typing         -> rdfs:subPropertyOf the closed relationship type
 #################################################################
 
 
 #################################################################
-# RULE 3 — PROPERTY DEFINITIONS AND INSTANCES (TRIPARTITE PATTERN)
+# RULE 3 — PROPERTY DEFINITIONS AND INSTANCES (DIRECT-PREDICATE PATTERN)
 #
-# This is the one part of the pattern needing genuinely new, domain-
-# independent vocabulary, since RDF/OWL has no built-in separation
-# between a reusable property definition and a per-element value of it.
-# Nothing below references ArchiMate-specific types.
+# Each property definition from the ArchiMate global property manager is
+# declared as an owl:DatatypeProperty, uniquely identified by its name
+# (key). A shared super-property archimate:Property enables generic
+# queryability across all property predicates. No intermediate instance
+# nodes are created — property values are expressed as direct triples.
 #################################################################
 
-ex:PropertyDefinition a owl:Class ;
-    rdfs:label "Property Definition"@en ;
-    rdfs:comment "A standalone, globally reusable property definition: a name/key plus an XSD datatype. Mirrors ArchiMate's global property manager, where definitions exist independently of their instances." .
-
-ex:PropertyInstance a owl:Class ;
-    rdfs:label "Property Instance"@en ;
-    rdfs:comment "One concrete value of a property definition, attached to exactly one element or relation." .
-
-ex:hasProperty a owl:ObjectProperty ;
-    rdfs:label "has property"@en ;
-    rdfs:range ex:PropertyInstance ;
-    rdfs:comment "Links an element, or a relation (via its ID-as-IRI), to one of its property instance nodes. Domain intentionally left open since both element individuals and relation predicate IRIs may be subjects." .
-
-ex:isInstanceOf a owl:ObjectProperty ;
-    rdfs:label "is instance of"@en ;
-    rdfs:domain ex:PropertyInstance ;
-    rdfs:range ex:PropertyDefinition ;
-    rdfs:comment "Links a property instance back to the global property definition it realizes." .
-
-ex:hasValue a owl:DatatypeProperty ;
-    rdfs:label "has value"@en ;
-    rdfs:domain ex:PropertyInstance ;
-    rdfs:comment "The literal value of a property instance. Its XSD datatype must match the one declared on the linked ex:PropertyDefinition via ex:hasDataType." .
-
-ex:hasKey a owl:DatatypeProperty ;
-    rdfs:label "has key"@en ;
-    rdfs:domain ex:PropertyDefinition ;
-    rdfs:range xsd:string ;
-    rdfs:comment "The property definition's name/key, as registered in the ArchiMate global property manager." .
-
-ex:hasDataType a owl:DatatypeProperty ;
-    rdfs:label "has data type"@en ;
-    rdfs:domain ex:PropertyDefinition ;
-    rdfs:range xsd:anyURI ;
-    rdfs:comment "IRI of the XSD datatype for this definition, e.g. xsd:string, xsd:integer, xsd:boolean, xsd:float." .
+archimate:Property a owl:DatatypeProperty ;
+    rdfs:label "Property"@en ;
+    rdfs:comment """Shared super-property for all ArchiMate property definitions.
+Each concrete property predicate (e.g. ex:name, ex:age) is declared
+rdfs:subPropertyOf archimate:Property, enabling generic querying
+across all property values.""" .
 
 #################################################################
 # RULE 3 — DYNAMIC CONSTRUCTION PATTERN
 #
-# Like elements (Rule 1) and relations (Rule 2), both the definition and
-# the instance are dynamically identified — the definition by its own
-# ArchiMate identifier, the instance by a computed IRI. Pattern, for one
-# property definition:
+# Pattern, for one property definition (declared once per unique key):
 #
-#   <property-definition-id> a ex:PropertyDefinition ;
-#       ex:hasKey      "property name"^^xsd:string ;
-#       ex:hasDataType xsd:string .   # or xsd:integer / xsd:boolean / xsd:float
+#   ex:PropertyName a owl:DatatypeProperty ;
+#       rdfs:subPropertyOf archimate:Property ;
+#       rdfs:range xsd:string .   # or xsd:integer / xsd:boolean / xsd:float
 #
-# Pattern, for one property instance — identity is constructed by
-# concatenating the subject id, the property-definition id, and an
-# ordinal index (so one subject can hold several instances of the same
-# definition):
+# Pattern, for one property instance — a direct triple linking
+# the subject to the literal value:
 #
-#   <subject-id>-<property-definition-id>-<ordinal> a ex:PropertyInstance ;
-#       ex:isInstanceOf <property-definition-id> ;
-#       ex:hasValue "actual value" .
+#   <subject-id> ex:PropertyName "actual value"^^xsd:string .
 #
-#   <subject-id> ex:hasProperty <subject-id>-<property-definition-id>-<ordinal> .
+# Because ArchiMate permits an element to carry duplicate values for the
+# same property key, this is represented simply as multiple triples
+# sharing the same subject and predicate, differentiated only by their
+# object.
 #
-# - Identity (definition) -> ArchiMate identifier becomes the definition's IRI
-# - Identity (instance)   -> concatenation of subject id + definition id + ordinal
-# - Key / type            -> ex:hasKey / ex:hasDataType, on the definition
-# - Value                 -> ex:hasValue, on the instance
-# - Linking               -> ex:hasProperty (subject -> instance),
-#                            ex:isInstanceOf (instance -> definition)
+# - Identity (definition) -> property name/key becomes the predicate IRI
+# - Type                  -> rdfs:range on the definition
+# - Hierarchy             -> rdfs:subPropertyOf archimate:Property
+# - Value                 -> direct triple with typed literal
 #################################################################
