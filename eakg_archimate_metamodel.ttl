@@ -21,12 +21,10 @@
 #     archimate: core relationship types (see Rule 2 / pass3_relationships()).
 #
 # SCOPE:  this file encodes ONLY the abstract ArchiMate meta-model
-# backbone shown in the Open Group reference diagrams:
-#
-#   Fig. 1  - Top-Level Hierarchy of ArchiMate Concepts
-#   Fig. 4  - Hierarchy of Behavior and Structure Elements
-#   (Composite Element) - Grouping / Location
-#   Fig. 21 - Overview of Relationships
+# backbone: the top-level split into Element / Relationship /
+# RelationshipConnector, the Behavior/Structure/Motivation/Composite
+# element hierarchy, and the Structural/Dependency/Dynamic/Other
+# relationship hierarchy.
 #
 # It deliberately does NOT enumerate the ~50 concrete, layer-specific
 # leaf types (e.g. archimate:BusinessActor, archimate:ApplicationService,
@@ -37,7 +35,7 @@
 #
 # DESIGN NOTE ON "Concept":
 # In the ArchiMate spec, Element, Relationship and RelationshipConnector
-# are all sub-types of the single abstract notion "Concept" (Fig. 1 / 4).
+# are all sub-types of the single abstract notion "Concept".
 # In this EAKG, however, Elements are realised as RDF classes/individuals
 # (vertices) while Relationships are realised as RDF properties (edges) -
 # two different RDF citizens by design (Rules 1-2). OWL has no single
@@ -52,7 +50,7 @@
 
 archimate:Concept a owl:Class ;
     rdfs:label "Concept"@en ;
-    rdfs:comment """Abstract root of the ArchiMate metamodel (Open Group Fig. 1 / 4):
+    rdfs:comment """Abstract root of the ArchiMate metamodel:
 generalises Element, Relationship and RelationshipConnector. Declared here
 for documentation/anchoring purposes only - see the design note above for
 why no formal subClassOf/subPropertyOf axiom spans the Element and
@@ -61,7 +59,6 @@ Relationship branches in this ontology."""@en .
 
 #################################################################
 # ELEMENT BRANCH  (owl:Class / rdfs:subClassOf)
-# Source: Fig. 1 (top-level split) and Fig. 4 (Behavior/Structure detail)
 #################################################################
 
 archimate:Element a owl:Class ;
@@ -145,10 +142,10 @@ archimate:Location a owl:Class ;
 
 #################################################################
 # RELATIONSHIPCONNECTOR BRANCH  (owl:Class / rdfs:subClassOf)
-# Source: Fig. 4 / Fig. 21. Junctions carry their own ArchiMate
-# identifier and act as pass-through connection points between
-# relationships, so - like Elements - they are realised as
-# vertices (owl:Class + individual), not as predicates.
+# Junctions carry their own ArchiMate identifier and act as
+# pass-through connection points between relationships, so - like
+# Elements - they are realised as vertices (owl:Class + individual),
+# not as predicates.
 #################################################################
 
 archimate:RelationshipConnector a owl:Class ;
@@ -169,7 +166,6 @@ archimate:OrJunction a owl:Class ;
 
 #################################################################
 # RELATIONSHIP BRANCH  (owl:ObjectProperty / rdfs:subPropertyOf)
-# Source: Fig. 21 (Overview of Relationships).
 # Kept consistent with Rule 2 / pass3_relationships(), which declares
 # each concrete relationship's core type as an owl:ObjectProperty and
 # chains the per-model relationship identifier to it via
