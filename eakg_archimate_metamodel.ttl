@@ -261,12 +261,71 @@ archimate:Specialization a owl:ObjectProperty ;
 
 
 #################################################################
+# LAYER BRANCH  (owl:Class / rdfs:subClassOf)
+#
+# ArchiMate classifies elements along two independent dimensions:
+# an ASPECT (Active Structure / Behavior / Passive Structure - the
+# Element branch above) and a LAYER (which part of the enterprise
+# it belongs to). This branch declares the layer as a second,
+# parallel classification. Each leaf element below therefore ends
+# up with TWO rdfs:subClassOf parents - one from the Element branch
+# (its aspect) and one from this Layer branch (its layer) - which is
+# ordinary OWL/RDFS multiple inheritance, not a conflict.
+#
+# Relationship types are NOT assigned a layer: a single ArchiMate
+# relationship (e.g. a Serving relationship) routinely crosses layers
+# (e.g. an Application Service serving a Business Process), so "layer"
+# is only a meaningful classification for elements, not relationships.
+#################################################################
+
+archimate:Layer a owl:Class ;
+    rdfs:label "Layer"@en ;
+    rdfs:comment "Abstract root for the ArchiMate layers. Declared for documentation/anchoring purposes, parallel to archimate:Concept for the aspect dimension."@en .
+
+archimate:MotivationLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Motivation Layer"@en ;
+    rdfs:comment "The layer describing the reasons that guide the design of an enterprise architecture."@en .
+
+archimate:StrategyLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Strategy Layer"@en ;
+    rdfs:comment "The layer describing the strategic direction and capabilities of an enterprise."@en .
+
+archimate:BusinessLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Business Layer"@en ;
+    rdfs:comment "The layer describing business services offered to customers, realised by business processes performed by business actors and roles."@en .
+
+archimate:ApplicationLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Application Layer"@en ;
+    rdfs:comment "The layer describing application services supporting the business, realised by application components."@en .
+
+archimate:TechnologyLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Technology Layer"@en ;
+    rdfs:comment "The layer describing technology services (infrastructure) supporting the application layer, realised by nodes, devices and system software."@en .
+
+archimate:PhysicalLayer a owl:Class ;
+    rdfs:subClassOf archimate:TechnologyLayer ;
+    rdfs:label "Physical Layer"@en ;
+    rdfs:comment "The physical extension of the Technology Layer, describing tangible equipment, facilities, and materials."@en .
+
+archimate:ImplementationMigrationLayer a owl:Class ;
+    rdfs:subClassOf archimate:Layer ;
+    rdfs:label "Implementation and Migration Layer"@en ;
+    rdfs:comment "The layer describing programs, projects, and transition states used to implement and migrate the architecture."@en .
+
+
+#################################################################
 # LEAF NODE MAPPINGS  (rdfs:subClassOf only - no rdf:type asserted)
 #
 # Every concrete, layer-specific ArchiMate 3.1 element type is linked
-# here to its abstract metamodel parent from the branches declared
-# above. This section adds ONLY the subClassOf edge for each leaf -
-# it never asserts  archimate:LeafType a owl:Class  itself. That
+# here to BOTH of its metamodel parents from the branches declared
+# above: its aspect (Element branch) and its layer (Layer branch).
+# This section adds ONLY the subClassOf edges for each leaf - it
+# never asserts  archimate:LeafType a owl:Class  itself. That
 # declaration stays dynamic: the translator already emits it at
 # population time (pass2_elements() / resolve_archimate_class()),
 # once a leaf actually occurs in a real model. Declaring it again
@@ -281,94 +340,94 @@ archimate:Specialization a owl:ObjectProperty ;
 
 # --- Motivation layer -------------------------------------------------
 
-archimate:Stakeholder  rdfs:subClassOf archimate:MotivationElement .
-archimate:Driver       rdfs:subClassOf archimate:MotivationElement .
-archimate:Assessment   rdfs:subClassOf archimate:MotivationElement .
-archimate:Goal         rdfs:subClassOf archimate:MotivationElement .
-archimate:Outcome      rdfs:subClassOf archimate:MotivationElement .
-archimate:Principle    rdfs:subClassOf archimate:MotivationElement .
-archimate:Requirement  rdfs:subClassOf archimate:MotivationElement .
-archimate:Constraint   rdfs:subClassOf archimate:Requirement .
-archimate:Meaning      rdfs:subClassOf archimate:MotivationElement .
-archimate:Value        rdfs:subClassOf archimate:MotivationElement .
+archimate:Stakeholder  rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Driver       rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Assessment   rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Goal         rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Outcome      rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Principle    rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Requirement  rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Constraint   rdfs:subClassOf archimate:Requirement, archimate:MotivationLayer .
+archimate:Meaning      rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
+archimate:Value        rdfs:subClassOf archimate:MotivationElement, archimate:MotivationLayer .
 
 # --- Strategy layer -----------------------------------------------------
 # Resource sits directly under Structure Element (not further split into
 # Active/Passive by the spec); Capability/Course of Action/Value Stream
 # sit directly under Behavior Element (not split into Internal/External).
 
-archimate:Resource       rdfs:subClassOf archimate:StructureElement .
-archimate:Capability     rdfs:subClassOf archimate:BehaviorElement .
-archimate:CourseOfAction rdfs:subClassOf archimate:BehaviorElement .
-archimate:ValueStream    rdfs:subClassOf archimate:BehaviorElement .
+archimate:Resource       rdfs:subClassOf archimate:StructureElement, archimate:StrategyLayer .
+archimate:Capability     rdfs:subClassOf archimate:BehaviorElement, archimate:StrategyLayer .
+archimate:CourseOfAction rdfs:subClassOf archimate:BehaviorElement, archimate:StrategyLayer .
+archimate:ValueStream    rdfs:subClassOf archimate:BehaviorElement, archimate:StrategyLayer .
 
 # --- Business layer -------------------------------------------------
 
-archimate:BusinessActor         rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:BusinessRole          rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:BusinessCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:BusinessInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement .
+archimate:BusinessActor         rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:BusinessLayer .
+archimate:BusinessRole          rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:BusinessLayer .
+archimate:BusinessCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:BusinessLayer .
+archimate:BusinessInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement, archimate:BusinessLayer .
 
-archimate:BusinessProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:BusinessFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:BusinessInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:BusinessEvent       rdfs:subClassOf archimate:Event .
-archimate:BusinessService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+archimate:BusinessProcess     rdfs:subClassOf archimate:InternalBehaviorElement, archimate:BusinessLayer .
+archimate:BusinessFunction    rdfs:subClassOf archimate:InternalBehaviorElement, archimate:BusinessLayer .
+archimate:BusinessInteraction rdfs:subClassOf archimate:InternalBehaviorElement, archimate:BusinessLayer .
+archimate:BusinessEvent       rdfs:subClassOf archimate:Event, archimate:BusinessLayer .
+archimate:BusinessService     rdfs:subClassOf archimate:ExternalBehaviorElement, archimate:BusinessLayer .
 
-archimate:BusinessObject   rdfs:subClassOf archimate:PassiveStructureElement .
-archimate:Contract         rdfs:subClassOf archimate:BusinessObject .
-archimate:Representation   rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:BusinessObject   rdfs:subClassOf archimate:PassiveStructureElement, archimate:BusinessLayer .
+archimate:Contract         rdfs:subClassOf archimate:BusinessObject, archimate:BusinessLayer .
+archimate:Representation   rdfs:subClassOf archimate:PassiveStructureElement, archimate:BusinessLayer .
 
-archimate:Product rdfs:subClassOf archimate:CompositeElement .
+archimate:Product rdfs:subClassOf archimate:CompositeElement, archimate:BusinessLayer .
 
 # --- Application layer -------------------------------------------------
 
-archimate:ApplicationComponent     rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:ApplicationCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:ApplicationInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement .
+archimate:ApplicationComponent     rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:ApplicationLayer .
+archimate:ApplicationCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:ApplicationLayer .
+archimate:ApplicationInterface     rdfs:subClassOf archimate:ExternalActiveStructureElement, archimate:ApplicationLayer .
 
-archimate:ApplicationFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:ApplicationInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:ApplicationProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:ApplicationEvent       rdfs:subClassOf archimate:Event .
-archimate:ApplicationService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+archimate:ApplicationFunction    rdfs:subClassOf archimate:InternalBehaviorElement, archimate:ApplicationLayer .
+archimate:ApplicationInteraction rdfs:subClassOf archimate:InternalBehaviorElement, archimate:ApplicationLayer .
+archimate:ApplicationProcess     rdfs:subClassOf archimate:InternalBehaviorElement, archimate:ApplicationLayer .
+archimate:ApplicationEvent       rdfs:subClassOf archimate:Event, archimate:ApplicationLayer .
+archimate:ApplicationService     rdfs:subClassOf archimate:ExternalBehaviorElement, archimate:ApplicationLayer .
 
-archimate:DataObject rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:DataObject rdfs:subClassOf archimate:PassiveStructureElement, archimate:ApplicationLayer .
 
 # --- Technology layer (incl. Physical extension) -------------------------
 
-archimate:Node                   rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:Device                 rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:SystemSoftware         rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:TechnologyCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:Path                   rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:CommunicationNetwork   rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:TechnologyInterface    rdfs:subClassOf archimate:ExternalActiveStructureElement .
+archimate:Node                   rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:Device                 rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:SystemSoftware         rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:TechnologyCollaboration rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:Path                   rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:CommunicationNetwork   rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:TechnologyLayer .
+archimate:TechnologyInterface    rdfs:subClassOf archimate:ExternalActiveStructureElement, archimate:TechnologyLayer .
 
-archimate:TechnologyFunction    rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:TechnologyProcess     rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:TechnologyInteraction rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:TechnologyEvent       rdfs:subClassOf archimate:Event .
-archimate:TechnologyService     rdfs:subClassOf archimate:ExternalBehaviorElement .
+archimate:TechnologyFunction    rdfs:subClassOf archimate:InternalBehaviorElement, archimate:TechnologyLayer .
+archimate:TechnologyProcess     rdfs:subClassOf archimate:InternalBehaviorElement, archimate:TechnologyLayer .
+archimate:TechnologyInteraction rdfs:subClassOf archimate:InternalBehaviorElement, archimate:TechnologyLayer .
+archimate:TechnologyEvent       rdfs:subClassOf archimate:Event, archimate:TechnologyLayer .
+archimate:TechnologyService     rdfs:subClassOf archimate:ExternalBehaviorElement, archimate:TechnologyLayer .
 
-archimate:Artifact rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:Artifact rdfs:subClassOf archimate:PassiveStructureElement, archimate:TechnologyLayer .
 
 # Physical elements (Technology layer extension)
-archimate:Equipment           rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:Facility            rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:DistributionNetwork rdfs:subClassOf archimate:InternalActiveStructureElement .
-archimate:Material            rdfs:subClassOf archimate:PassiveStructureElement .
+archimate:Equipment           rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:PhysicalLayer .
+archimate:Facility            rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:PhysicalLayer .
+archimate:DistributionNetwork rdfs:subClassOf archimate:InternalActiveStructureElement, archimate:PhysicalLayer .
+archimate:Material            rdfs:subClassOf archimate:PassiveStructureElement, archimate:PhysicalLayer .
 
 # --- Implementation & Migration layer -------------------------------------------------
 
-archimate:WorkPackage       rdfs:subClassOf archimate:InternalBehaviorElement .
-archimate:Deliverable       rdfs:subClassOf archimate:PassiveStructureElement .
-archimate:ImplementationEvent rdfs:subClassOf archimate:Event .
-archimate:Plateau           rdfs:subClassOf archimate:CompositeElement .
+archimate:WorkPackage       rdfs:subClassOf archimate:InternalBehaviorElement, archimate:ImplementationMigrationLayer .
+archimate:Deliverable       rdfs:subClassOf archimate:PassiveStructureElement, archimate:ImplementationMigrationLayer .
+archimate:ImplementationEvent rdfs:subClassOf archimate:Event, archimate:ImplementationMigrationLayer .
+archimate:Plateau           rdfs:subClassOf archimate:CompositeElement, archimate:ImplementationMigrationLayer .
 
 # Gap does not cleanly fit the structure/behavior/composite split used
 # elsewhere in the spec (it represents a stated difference between two
 # plateaus, not a thing that acts or is acted upon), so it is linked
 # directly to the generic archimate:Element rather than guessed into
 # one of its descendants.
-archimate:Gap rdfs:subClassOf archimate:Element .
+archimate:Gap rdfs:subClassOf archimate:Element, archimate:ImplementationMigrationLayer .
