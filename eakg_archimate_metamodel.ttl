@@ -283,27 +283,27 @@ archimate:Layer a owl:Class ;
     rdfs:comment "Abstract root for the ArchiMate layers. Declared for documentation/anchoring purposes, parallel to archimate:Concept for the aspect dimension."@en .
 
 archimate:MotivationLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Motivation Layer"@en ;
     rdfs:comment "The layer describing the reasons that guide the design of an enterprise architecture."@en .
 
 archimate:StrategyLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Strategy Layer"@en ;
     rdfs:comment "The layer describing the strategic direction and capabilities of an enterprise."@en .
 
 archimate:BusinessLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Business Layer"@en ;
     rdfs:comment "The layer describing business services offered to customers, realised by business processes performed by business actors and roles."@en .
 
 archimate:ApplicationLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Application Layer"@en ;
     rdfs:comment "The layer describing application services supporting the business, realised by application components."@en .
 
 archimate:TechnologyLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Technology Layer"@en ;
     rdfs:comment "The layer describing technology services (infrastructure) supporting the application layer, realised by nodes, devices and system software."@en .
 
@@ -313,7 +313,7 @@ archimate:PhysicalLayer a owl:Class ;
     rdfs:comment "The physical extension of the Technology Layer, describing tangible equipment, facilities, and materials."@en .
 
 archimate:ImplementationMigrationLayer a owl:Class ;
-    rdfs:subClassOf archimate:Layer ;
+    a archimate:Layer ;
     rdfs:label "Implementation and Migration Layer"@en ;
     rdfs:comment "The layer describing programs, projects, and transition states used to implement and migrate the architecture."@en .
 
@@ -321,7 +321,7 @@ archimate:ImplementationMigrationLayer a owl:Class ;
 #################################################################
 # LEAF NODE MAPPINGS  (rdfs:subClassOf only - no rdf:type asserted)
 #
-# Every concrete, layer-specific ArchiMate 3.1 element type is linked
+# Every concrete, layer-specific ArchiMate 3.2 element type is linked
 # here to BOTH of its metamodel parents from the branches declared
 # above: its aspect (Element branch) and its layer (Layer branch).
 # This section adds ONLY the subClassOf edges for each leaf - it
