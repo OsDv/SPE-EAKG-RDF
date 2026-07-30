@@ -6,8 +6,8 @@ Translates an ArchiMate Model Exchange File Format (v3.1) XML file
 into an Enterprise Architecture Knowledge Graph (EAKG) using the
 construction rules defined in:
 
-  - "Translation Rules: ArchiMate to Semantic Web Ontology (RDF/OWL)"
-  - The base pattern file  eakg_base_pattern_final.ttl
+  - "Translation Rules: ArchiMate to Semantic Web Ontology (RDF/OWL) v2"
+  - The base pattern file  eakg_base_pattern.ttl
 
 Usage:
     python archimate_to_eakg.py <input.xml> [output.ttl]
@@ -16,10 +16,10 @@ If no output path is given, the result is written to  eakg_output.ttl
 in the same directory as the input file.
 """
 
+import re
 import sys
 import os
 import xml.etree.ElementTree as ET
-from collections import defaultdict
 
 from rdflib import Graph, Namespace, URIRef, Literal, RDF, RDFS, OWL, XSD
 
@@ -40,6 +40,7 @@ ARCHIMATE = Namespace("http://www.opengroup.org/xsd/archimate/3.0#")
 # ArchiMate exchange-format XML namespaces
 ARCHIMATE_XML_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
 XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
+XML_NS = "http://www.w3.org/XML/1998/namespace"
 XML_NSMAP = {
     "am": ARCHIMATE_XML_NS,
     "xsi": XSI_NS,
@@ -73,10 +74,57 @@ def resolve_archimate_class(xsi_type_value: str) -> URIRef:
 def id_to_iri(identifier: str) -> URIRef:
     """
     Convert any ArchiMate identifier string to an IRI in the  ex:  namespace.
-    Used uniformly for property-definitions, elements, relationships,
-    and concatenated property-instance IDs.
+    Used uniformly for elements and relationships.
     """
     return EX[identifier]
+
+
+# --- Property name → IRI helper --------------------------------------
+
+def property_name_to_iri(key_name: str) -> URIRef:
+    """
+    Convert a property definition's name/key string into a valid IRI
+    in the  ex:  namespace.
+
+    Sanitises the key by replacing any characters that are not valid
+    in an IRI local name with underscores, and ensures it does not
+    start with a digit.
+    """
+    sanitised = re.sub(r"[^A-Za-z0-9_-]", "_", key_name.strip())
+    if sanitised and sanitised[0].isdigit():
+        sanitised = "_" + sanitised
+    if not sanitised:
+        sanitised = "_unnamed"
+    return EX[sanitised]
+
+
+# --- Multi-language literal helper ------------------------------------
+
+def emit_lang_literals(subject_iri, predicate, elements, graph):
+    """
+    For a list of XML elements (e.g. <name> or <documentation>) that may
+    carry an xml:lang attribute, emit one triple per element using a
+    language-tagged literal.
+
+    Parameters
+    ----------
+    subject_iri : URIRef
+        The RDF subject.
+    predicate : URIRef
+        The RDF predicate (e.g. RDFS.label, RDFS.comment).
+    elements : list[xml.etree.ElementTree.Element]
+        The XML children to iterate over.
+    graph : rdflib.Graph
+        The target graph.
+    """
+    for el in elements:
+        if el.text and el.text.strip():
+            lang = el.get(f"{{{XML_NS}}}lang")
+            if lang:
+                lit = Literal(el.text.strip(), lang=lang)
+            else:
+                lit = Literal(el.text.strip(), datatype=XSD.string)
+            graph.add((subject_iri, predicate, lit))
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -86,9 +134,14 @@ def id_to_iri(identifier: str) -> URIRef:
 def pass1_property_definitions(root, graph):
     """
     Parse  <propertyDefinitions>  and populate the graph with
-    ex:PropertyDefinition nodes.
+    owl:DatatypeProperty predicates identified by their name/key.
 
-    Returns a dict:  { definition_id: (key_name, xsd_datatype_uriref) }
+    Each property definition is declared once as:
+        ex:PropertyName  a  owl:DatatypeProperty ;
+            rdfs:subPropertyOf  archimate:Property ;
+            rdfs:range          xsd:<datatype> .
+
+    Returns a dict:  { definition_id: (property_iri, xsd_datatype_uriref) }
     """
     propdef_dict = {}
 
@@ -98,7 +151,6 @@ def pass1_property_definitions(root, graph):
 
     for pdef in container.findall(f"{{{ARCHIMATE_XML_NS}}}propertyDefinition"):
         def_id = pdef.get("identifier")
-        def_iri = id_to_iri(def_id)
 
         # Name / key — first <name> child
         name_el = pdef.find(f"{{{ARCHIMATE_XML_NS}}}name")
@@ -108,31 +160,34 @@ def pass1_property_definitions(root, graph):
         type_str = (pdef.get("type") or "string").lower()
         xsd_dt = ARCHIMATE_TYPE_TO_XSD.get(type_str, XSD.string)
 
-        # Emit triples
-        graph.add((def_iri, RDF.type, EX.PropertyDefinition))
-        graph.add((def_iri, EX.hasKey, Literal(key_name, datatype=XSD.string)))
-        graph.add((def_iri, EX.hasDataType, xsd_dt))
+        # Build the property predicate IRI from the key name
+        prop_iri = property_name_to_iri(key_name)
 
-        # Store for later passes
-        propdef_dict[def_id] = (key_name, xsd_dt)
+        # Emit triples  (Rule 3 v2 – Definition)
+        graph.add((prop_iri, RDF.type, OWL.DatatypeProperty))
+        graph.add((prop_iri, RDFS.subPropertyOf, ARCHIMATE.Property))
+        graph.add((prop_iri, RDFS.range, xsd_dt))
+
+        # Store for later passes:  ArchiMate def id  →  (predicate IRI, xsd datatype)
+        propdef_dict[def_id] = (prop_iri, xsd_dt)
 
     return propdef_dict
 
 
 # ─────────────────────────────────────────────────────────────────
-# 3. SHARED HELPER — Property Instances  (Rule 3 – Instance Half)
+# 3. SHARED HELPER — Property Values  (Rule 3 – Instance Half)
 # ─────────────────────────────────────────────────────────────────
 
-def emit_property_instances(subject_id, subject_iri, property_elements, propdef_dict, graph):
+def emit_property_values(subject_iri, property_elements, propdef_dict, graph):
     """
     For a given subject (element or relationship), process its
-    <property propertyDefinitionRef="..."> children and emit the
-    tripartite  PropertyInstance  pattern.
+    <property propertyDefinitionRef="..."> children and emit direct
+    triples of the form:
+
+        subject_iri  ex:PropertyName  "value"^^xsd:datatype .
 
     Parameters
     ----------
-    subject_id : str
-        The raw ArchiMate identifier of the owning element/relation.
     subject_iri : URIRef
         The RDF IRI of the owning element/relation.
     property_elements : list[xml.etree.ElementTree.Element]
@@ -142,40 +197,22 @@ def emit_property_instances(subject_id, subject_iri, property_elements, propdef_
     graph : rdflib.Graph
         The target graph.
     """
-    # Per-(subject, propdef) ordinal counter
-    ordinal_counter = defaultdict(int)
-
     for prop_el in property_elements:
         propdef_ref = prop_el.get("propertyDefinitionRef")
         if propdef_ref is None:
             continue
 
-        # Look up datatype from Pass 1
-        key_name, xsd_dt = propdef_dict.get(propdef_ref, ("", XSD.string))
-
-        # Build ordinal
-        ordinal = ordinal_counter[(subject_id, propdef_ref)]
-        ordinal_counter[(subject_id, propdef_ref)] += 1
-
-        # Instance IRI:  {subject_id}-{propdef_id}-{ordinal}
-        instance_id = f"{subject_id}-{propdef_ref}-{ordinal}"
-        instance_iri = id_to_iri(instance_id)
+        # Look up predicate IRI and datatype from Pass 1
+        prop_iri, xsd_dt = propdef_dict.get(propdef_ref, (None, XSD.string))
+        if prop_iri is None:
+            continue
 
         # Read the literal value
         value_el = prop_el.find(f"{{{ARCHIMATE_XML_NS}}}value")
         raw_value = value_el.text.strip() if value_el is not None and value_el.text else ""
 
-        # Type the instance
-        graph.add((instance_iri, RDF.type, EX.PropertyInstance))
-
-        # Link instance → definition
-        graph.add((instance_iri, EX.isInstanceOf, id_to_iri(propdef_ref)))
-
-        # Attach the literal value, cast to the correct XSD type
-        graph.add((instance_iri, EX.hasValue, Literal(raw_value, datatype=xsd_dt)))
-
-        # Link subject → instance
-        graph.add((subject_iri, EX.hasProperty, instance_iri))
+        # Emit direct triple  (Rule 3 v2 – Instance)
+        graph.add((subject_iri, prop_iri, Literal(raw_value, datatype=xsd_dt)))
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -186,6 +223,9 @@ def pass2_elements(root, propdef_dict, graph):
     """
     Parse  <elements>  and populate the graph with NamedIndividual
     vertices typed to the closed ArchiMate vocabulary.
+
+    All <name> and <documentation> children are emitted with their
+    xml:lang tags as language-tagged literals.
     """
     container = root.find(f"{{{ARCHIMATE_XML_NS}}}elements")
     if container is None:
@@ -205,24 +245,20 @@ def pass2_elements(root, propdef_dict, graph):
         # owl:NamedIndividual
         graph.add((elem_iri, RDF.type, OWL.NamedIndividual))
 
-        # rdfs:label  ←  first <name>
-        name_el = elem.find(f"{{{ARCHIMATE_XML_NS}}}name")
-        if name_el is not None and name_el.text:
-            graph.add((elem_iri, RDFS.label,
-                        Literal(name_el.text.strip(), datatype=XSD.string)))
+        # rdfs:label  ←  ALL <name> children (multi-language)
+        name_els = elem.findall(f"{{{ARCHIMATE_XML_NS}}}name")
+        emit_lang_literals(elem_iri, RDFS.label, name_els, graph)
 
-        # rdfs:comment  ←  first <documentation>
-        doc_el = elem.find(f"{{{ARCHIMATE_XML_NS}}}documentation")
-        if doc_el is not None and doc_el.text:
-            graph.add((elem_iri, RDFS.comment,
-                        Literal(doc_el.text.strip(), datatype=XSD.string)))
+        # rdfs:comment  ←  ALL <documentation> children (multi-language)
+        doc_els = elem.findall(f"{{{ARCHIMATE_XML_NS}}}documentation")
+        emit_lang_literals(elem_iri, RDFS.comment, doc_els, graph)
 
-        # Property instances
+        # Property values (direct triples)
         props = elem.findall(f"{{{ARCHIMATE_XML_NS}}}properties/{{{ARCHIMATE_XML_NS}}}property")
         if not props:
             # Some exporters place <property> directly under <element>
             props = elem.findall(f"{{{ARCHIMATE_XML_NS}}}property")
-        emit_property_instances(elem_id, elem_iri, props, propdef_dict, graph)
+        emit_property_values(elem_iri, props, propdef_dict, graph)
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -233,6 +269,9 @@ def pass3_relationships(root, propdef_dict, graph):
     """
     Parse  <relationships>  and populate the graph with
     owl:ObjectProperty edges typed via rdfs:subPropertyOf.
+
+    All <documentation> children are emitted with their xml:lang tags
+    as language-tagged literals.
     """
     container = root.find(f"{{{ARCHIMATE_XML_NS}}}relationships")
     if container is None:
@@ -252,11 +291,9 @@ def pass3_relationships(root, propdef_dict, graph):
             graph.add((archimate_rel_type, RDF.type, OWL.ObjectProperty))
             graph.add((rel_iri, RDFS.subPropertyOf, archimate_rel_type))
 
-        # rdfs:comment  ←  first <documentation>
-        doc_el = rel.find(f"{{{ARCHIMATE_XML_NS}}}documentation")
-        if doc_el is not None and doc_el.text:
-            graph.add((rel_iri, RDFS.comment,
-                        Literal(doc_el.text.strip(), datatype=XSD.string)))
+        # rdfs:comment  ←  ALL <documentation> children (multi-language)
+        doc_els = rel.findall(f"{{{ARCHIMATE_XML_NS}}}documentation")
+        emit_lang_literals(rel_iri, RDFS.comment, doc_els, graph)
 
         # Core triple:  source  relIRI  target
         source_id = rel.get("source")
@@ -264,11 +301,11 @@ def pass3_relationships(root, propdef_dict, graph):
         if source_id and target_id:
             graph.add((id_to_iri(source_id), rel_iri, id_to_iri(target_id)))
 
-        # Property instances
+        # Property values (direct triples)
         props = rel.findall(f"{{{ARCHIMATE_XML_NS}}}properties/{{{ARCHIMATE_XML_NS}}}property")
         if not props:
             props = rel.findall(f"{{{ARCHIMATE_XML_NS}}}property")
-        emit_property_instances(rel_id, rel_iri, props, propdef_dict, graph)
+        emit_property_values(rel_iri, props, propdef_dict, graph)
 
 
 # ─────────────────────────────────────────────────────────────────
