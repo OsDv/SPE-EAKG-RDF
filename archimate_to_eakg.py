@@ -270,8 +270,11 @@ def pass3_relationships(root, propdef_dict, graph):
     Parse  <relationships>  and populate the graph with
     owl:ObjectProperty edges typed via rdfs:subPropertyOf.
 
-    All <documentation> children are emitted with their xml:lang tags
-    as language-tagged literals.
+    All <name> and <documentation> children are emitted with their
+    xml:lang tags as language-tagged literals.
+
+    Schema-fixed XML attributes (e.g. modifier on InfluenceRelationship)
+    are emitted as Rule 3 property instances in the archimate: namespace.
     """
     container = root.find(f"{{{ARCHIMATE_XML_NS}}}relationships")
     if container is None:
@@ -291,6 +294,10 @@ def pass3_relationships(root, propdef_dict, graph):
             graph.add((archimate_rel_type, RDF.type, OWL.ObjectProperty))
             graph.add((rel_iri, RDFS.subPropertyOf, archimate_rel_type))
 
+        # rdfs:label  ←  ALL <name> children (multi-language)  [Rule 2 – Name]
+        name_els = rel.findall(f"{{{ARCHIMATE_XML_NS}}}name")
+        emit_lang_literals(rel_iri, RDFS.label, name_els, graph)
+
         # rdfs:comment  ←  ALL <documentation> children (multi-language)
         doc_els = rel.findall(f"{{{ARCHIMATE_XML_NS}}}documentation")
         emit_lang_literals(rel_iri, RDFS.comment, doc_els, graph)
@@ -306,6 +313,27 @@ def pass3_relationships(root, propdef_dict, graph):
         if not props:
             props = rel.findall(f"{{{ARCHIMATE_XML_NS}}}property")
         emit_property_values(rel_iri, props, propdef_dict, graph)
+
+        # Schema-fixed attributes  [Rule 3 – Special Case]
+        # Declared dynamically only when present in the source XML.
+
+        # accessType on Access relationships (e.g. "Read", "Write", "ReadWrite")
+        access_type_val = rel.get("accessType")
+        if access_type_val is not None:
+            graph.add((ARCHIMATE.accessType, RDF.type, OWL.DatatypeProperty))
+            graph.add((ARCHIMATE.accessType, RDFS.subPropertyOf, ARCHIMATE.Property))
+            graph.add((ARCHIMATE.accessType, RDFS.range, XSD.string))
+            graph.add((rel_iri, ARCHIMATE.accessType,
+                       Literal(access_type_val, datatype=XSD.string)))
+
+        # isDirected on Association relationships (e.g. "true", "false")
+        is_directed_val = rel.get("isDirected")
+        if is_directed_val is not None:
+            graph.add((ARCHIMATE.isDirected, RDF.type, OWL.DatatypeProperty))
+            graph.add((ARCHIMATE.isDirected, RDFS.subPropertyOf, ARCHIMATE.Property))
+            graph.add((ARCHIMATE.isDirected, RDFS.range, XSD.boolean))
+            graph.add((rel_iri, ARCHIMATE.isDirected,
+                       Literal(is_directed_val, datatype=XSD.boolean)))
 
 
 # ─────────────────────────────────────────────────────────────────

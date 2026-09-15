@@ -56,12 +56,15 @@ actual model being translated.""" .
 #
 #   <relation-id> a owl:ObjectProperty ;
 #       rdfs:subPropertyOf archimate:CoreRelationshipType ;
+#       rdfs:label "Relation name"@en ;
+#       rdfs:label "Nom de la relation"@fr ;
 #       rdfs:comment "Relation documentation"@en ;
 #       rdfs:comment "Documentation de la relation"@fr .
 #
 #   <source-element-id> <relation-id> <target-element-id> .
 #
 # - Identity/structure -> ArchiMate identifier becomes the predicate IRI
+# - Name                -> rdfs:label on the predicate itself (all language variants, optional)
 # - Doc                 -> rdfs:comment on the predicate itself (all language variants)
 # - Base typing         -> rdfs:subPropertyOf the closed relationship type
 #################################################################
@@ -83,6 +86,7 @@ archimate:Property a owl:DatatypeProperty ;
 Each concrete property predicate (e.g. ex:name, ex:age) is declared
 rdfs:subPropertyOf archimate:Property, enabling generic querying
 across all property values.""" .
+
 
 #################################################################
 # RULE 3 — DYNAMIC CONSTRUCTION PATTERN
@@ -107,4 +111,19 @@ across all property values.""" .
 # - Type                  -> rdfs:range on the definition
 # - Hierarchy             -> rdfs:subPropertyOf archimate:Property
 # - Value                 -> direct triple with typed literal
+#################################################################
+
+#################################################################
+# RULE 3 — SCHEMA-FIXED ATTRIBUTES (SPECIAL CASE)
+#
+# Certain relationship types carry semantic metadata as fixed XML
+# attributes rather than <property> child elements — specifically
+# accessType on Access relationships and isDirected on Association
+# relationships.  These are modelled as Rule 3 property instances
+# using the archimate: namespace (not ex:), so they cannot collide
+# with user-defined property names.
+#
+# Pattern:
+#   <relation-id>  archimate:accessType  "Read"^^xsd:string .
+#   <relation-id>  archimate:isDirected  "true"^^xsd:boolean .
 #################################################################
