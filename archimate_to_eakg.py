@@ -323,18 +323,15 @@ def pass3_relationships(root, propdef_dict, graph):
             graph.add((ARCHIMATE.accessType, RDF.type, OWL.DatatypeProperty))
             graph.add((ARCHIMATE.accessType, RDFS.subPropertyOf, ARCHIMATE.Property))
             graph.add((ARCHIMATE.accessType, RDFS.range, XSD.string))
-            graph.add((rel_iri, ARCHIMATE.accessType,
-                       Literal(access_type_val, datatype=XSD.string)))
+            graph.add((rel_iri, ARCHIMATE.accessType,Literal(access_type_val)))
 
         # isDirected on Association relationships; default to false when absent.
         is_directed_val = rel.get("isDirected")
-        if xsi_type  == "Association":
-            is_directed_val = is_directed_val or "false"
+        if is_directed_val is not None:
             graph.add((ARCHIMATE.isDirected, RDF.type, OWL.DatatypeProperty))
             graph.add((ARCHIMATE.isDirected, RDFS.subPropertyOf, ARCHIMATE.Property))
             graph.add((ARCHIMATE.isDirected, RDFS.range, XSD.boolean))
-            graph.add((rel_iri, ARCHIMATE.isDirected,
-                       Literal(is_directed_val, datatype=XSD.boolean)))
+            graph.add((rel_iri, ARCHIMATE.isDirected,Literal(is_directed_val, datatype=XSD.boolean)))
 
 
 # ─────────────────────────────────────────────────────────────────
