@@ -3,14 +3,13 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix ex:   <http://www.example.org/eakg#> .
-@prefix archimate: <http://www.opengroup.org/xsd/archimate/3.0#> .
-@base <http://www.example.org/eakg> .
-
+@prefix archimate: <http://purl.org/eakg/archimate#> .
 #################################################################
 # ONTOLOGY HEADER
 #################################################################
 
 <http://www.example.org/eakg> a owl:Ontology ;
+    owl:imports <http://purl.org/eakg/archimate> ;
     rdfs:label "EAKG Base Graph — Construction Pattern" ;
     rdfs:comment """Generic mechanism for Phase 1 (Knowledge Graph Creation / base graph)
 of the Model-based EA Knowledge Graph construction process (Glaser, Ali,
@@ -79,14 +78,6 @@ actual model being translated.""" .
 # queryability across all property predicates. No intermediate instance
 # nodes are created — property values are expressed as direct triples.
 #################################################################
-
-archimate:Property a owl:DatatypeProperty ;
-    rdfs:label "Property"@en ;
-    rdfs:comment """Shared super-property for all ArchiMate property definitions.
-Each concrete property predicate (e.g. ex:name, ex:age) is declared
-rdfs:subPropertyOf archimate:Property, enabling generic querying
-across all property values.""" .
-
 
 #################################################################
 # RULE 3 — DYNAMIC CONSTRUCTION PATTERN
