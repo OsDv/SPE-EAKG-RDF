@@ -432,28 +432,4 @@ archimate:Plateau           rdfs:subClassOf archimate:CompositeElement, archimat
 # one of its descendants.
 archimate:Gap rdfs:subClassOf archimate:Element, archimate:ImplementationMigrationLayer .
 
-# Gap Analysis Related Ontology
-
-# predicates
-
-archimate:GapNew a owl:ObjectProperty ;
-    rdfs:label "Gap New"@en ;
-    rdfs:domain archimate:Gap ;
-    rdfs:comment "Links Gap element with new architecture building blocks to be produced/procured"@en .
-
-archimate:GapInclude a owl:ObjectProperty ;
-    rdfs:label "Gap Include"@en ;
-    rdfs:domain archimate:Gap ;
-    rdfs:comment "Links Gap element with kept architecture building blocks, appears in baseline and target architecture"@en .
-
-archimate:GapImproved a owl:ObjectProperty ;
-    rdfs:label "Gap Improve"@en ;
-    rdfs:domain archimate:Gap ;
-    rdfs:comment "Links Gap element with kept architecture building blocks but with improvements"@en ;
-    rdfs:subPropertyOf archimate:GapInclude .
-
-archimate:GapEliminated a owl:ObjectProperty ;
-    rdfs:label "Gap Eliminated"@en ;
-    rdfs:domain archimate:Gap ;
-    rdfs:comment "Links Gap element with architecture building blocks correctly removed from target architecture"@en .
 
