@@ -35,7 +35,7 @@ BASE_TTL_FILENAME = "eakg_base_pattern.ttl"
 # --- Namespaces -------------------------------------------------------
 
 EX = Namespace("http://www.example.org/eakg#")
-ARCHIMATE = Namespace("http://www.opengroup.org/xsd/archimate/3.0#")
+ARCHIMATE = Namespace("http://purl.org/eakg/archimate#")
 
 # ArchiMate exchange-format XML namespaces
 ARCHIMATE_XML_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
@@ -239,7 +239,6 @@ def pass2_elements(root, propdef_dict, graph):
         xsi_type = elem.get(f"{{{XSI_NS}}}type")
         if xsi_type:
             archimate_class = resolve_archimate_class(xsi_type)
-            graph.add((archimate_class, RDF.type, OWL.Class))
             graph.add((elem_iri, RDF.type, archimate_class))
 
         # owl:NamedIndividual
@@ -270,8 +269,11 @@ def pass3_relationships(root, propdef_dict, graph):
     Parse  <relationships>  and populate the graph with
     owl:ObjectProperty edges typed via rdfs:subPropertyOf.
 
-    All <documentation> children are emitted with their xml:lang tags
-    as language-tagged literals.
+    All <name> and <documentation> children are emitted with their
+    xml:lang tags as language-tagged literals.
+
+    Schema-fixed XML attributes are emitted as Rule 3 property instances
+    in the archimate: namespace whenever they are present.
     """
     container = root.find(f"{{{ARCHIMATE_XML_NS}}}relationships")
     if container is None:
@@ -288,8 +290,11 @@ def pass3_relationships(root, propdef_dict, graph):
         xsi_type = rel.get(f"{{{XSI_NS}}}type")
         if xsi_type:
             archimate_rel_type = resolve_archimate_class(xsi_type)
-            graph.add((archimate_rel_type, RDF.type, OWL.ObjectProperty))
             graph.add((rel_iri, RDFS.subPropertyOf, archimate_rel_type))
+
+        # rdfs:label  ←  ALL <name> children (multi-language)  [Rule 2 – Name]
+        name_els = rel.findall(f"{{{ARCHIMATE_XML_NS}}}name")
+        emit_lang_literals(rel_iri, RDFS.label, name_els, graph)
 
         # rdfs:comment  ←  ALL <documentation> children (multi-language)
         doc_els = rel.findall(f"{{{ARCHIMATE_XML_NS}}}documentation")
@@ -306,6 +311,22 @@ def pass3_relationships(root, propdef_dict, graph):
         if not props:
             props = rel.findall(f"{{{ARCHIMATE_XML_NS}}}property")
         emit_property_values(rel_iri, props, propdef_dict, graph)
+
+        # Schema-fixed attributes [Rule 3 – Special Case].
+        # The static declarations live in the ontology; emit values whenever
+        # the XML contains the corresponding attribute.
+
+        access_type_val = rel.get("accessType")
+        if access_type_val is not None:
+            graph.add((rel_iri, ARCHIMATE.accessType, Literal(access_type_val)))
+
+        is_directed_val = rel.get("isDirected")
+        if is_directed_val is not None:
+            graph.add((rel_iri, ARCHIMATE.isDirected, Literal(is_directed_val, datatype=XSD.boolean)))
+
+        modifier_val = rel.get("modifier")
+        if modifier_val is not None:
+            graph.add((rel_iri, ARCHIMATE.modifier, Literal(modifier_val)))
 
 
 # ─────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 """
-EAKG Enrichment — Extension Layer Merger
-=========================================
+EAKG Triples Union
+==================
 
 Takes a populated EAKG base graph (Turtle) produced by
 archimate_to_eakg.py and merges one or more extension files on top
@@ -10,7 +10,7 @@ sets of triples, duplicates are silently absorbed and no conflicts
 can arise.
 
 Usage:
-    python enrich_eakg.py <base_graph.ttl> <extension.ttl> [output.ttl]
+    python triples_union.py <base_graph.ttl> <extension.ttl> [output.ttl]
 
 If no output path is given, the result is written to
 eakg_enriched_output.ttl  in the same directory as the base graph.
@@ -23,13 +23,13 @@ from rdflib import Graph, Namespace, OWL, RDF, RDFS, XSD
 
 # ── Namespaces (kept consistent with archimate_to_eakg.py) ───────
 EX = Namespace("http://www.example.org/eakg#")
-ARCHIMATE = Namespace("http://www.opengroup.org/xsd/archimate/3.0#")
+ARCHIMATE = Namespace("http://purl.org/eakg/archimate#")
 
 
 def main():
     # --- Argument handling --------------------------------------------
     if len(sys.argv) < 3:
-        print("Usage:  python enrich_eakg.py <base_graph.ttl> <extension.ttl> [output.ttl]")
+        print("Usage:  python triples_union.py <base_graph.ttl> <extension.ttl> [output.ttl]")
         sys.exit(1)
 
     base_path = sys.argv[1]
@@ -49,12 +49,12 @@ def main():
     base_count = len(g)
     print(f"        {base_count} triple(s) in base graph.")
 
-    # --- Load extension -----------------------------------------------
-    print(f"[Load]  Parsing extension:  {extension_path}")
+    # --- Load additional triples --------------------------------------
+    print(f"[Load]  Parsing additional triples: {extension_path}")
     g.parse(extension_path, format="turtle")
-    enriched_count = len(g)
-    added = enriched_count - base_count
-    print(f"        {added} new triple(s) added by extension.")
+    union_count = len(g)
+    added = union_count - base_count
+    print(f"        {added} new triple(s) added to the union.")
 
     # --- Bind prefixes for clean output --------------------------------
     g.bind("ex",        EX)
@@ -65,7 +65,7 @@ def main():
     g.bind("xsd",       XSD)
 
     # --- Serialize -----------------------------------------------------
-    print(f"[Output] Serializing enriched graph ({enriched_count} triples) → {output_path}")
+    print(f"[Output] Serializing triples union ({union_count} triples) → {output_path}")
     g.serialize(destination=output_path, format="turtle")
     print("[Done]")
 
