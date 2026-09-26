@@ -1,0 +1,114 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix archimate: <http://purl.org/eakg/archimate> .
+@prefix gap: <http://purl.org/eakg/gap_evolution>
+@prefix evo: <http://purl.org/eakg/gap_evolution>
+@base <http://purl.org/eakg/gap_evolution> .
+
+# Gap Analysis Ontology
+gap:GapNew a owl:ObjectProperty ;
+    rdfs:label "Gap New"@en ;
+    rdfs:domain archimate:Gap ;
+    rdfs:comment "Links Gap element with new architecture building blocks to be produced/procured"@en .
+
+gap:GapInclude a owl:ObjectProperty ;
+    rdfs:label "Gap Include"@en ;
+    rdfs:domain archimate:Gap ;
+    rdfs:comment "Links Gap element with kept architecture building blocks, appears in baseline and target architecture"@en .
+
+gap:GapImproved a owl:ObjectProperty ;
+    rdfs:label "Gap Improve"@en ;
+    rdfs:domain archimate:Gap ;
+    rdfs:comment "Links Gap element with kept architecture building blocks but with improvements"@en ;
+    rdfs:subPropertyOf gap:GapInclude .
+
+gap:GapEliminated a owl:ObjectProperty ;
+    rdfs:label "Gap Eliminated"@en ;
+    rdfs:domain archimate:Gap ;
+    rdfs:comment "Links Gap element with architecture building blocks correctly removed from target architecture"@en .
+
+# Evolution Ontology
+## Evolution modelling Classes
+evo:Change a owl:Class ;
+    rdfs:label "Evolution Change" ;
+    rdfs:comment "Represent a change of an archimate element life-cycle" .
+
+evo:Driver a owl:Class ;
+    rdfs:label "Evolution Driver" ;
+    rdfs:comment "Driver is an external or internal condition that motivates an organization to define its goals and implement the changes necessary to achieve them"
+
+evo:ITProject a owl:Class ;
+    rdfs:label "Evoluiton IT project" ;
+    rdfs:comment "IT Project acts as the enabler of EA evolution by applying a set of Transformations" .
+
+evo:LifeCycle a owl:class ;
+    rdfs:label "Evolution concept life cycle" ;
+    rdfs:comment "Represent the life cycle of an archimate concept" .
+
+evo:Stakeholder a owl:Class ;
+    rdfs:label "Evolution Stackeholder" ;
+    rdfs:comment "Stakeholder concept pertains to the people who had interests and/or were directly (or indirectly) involved in an EA transformation" .
+
+evo:Transformation a owl:Class ;
+    rdfs:label "Evolution transformation" ;
+    rdfs:comment "Transformation is decomposed to a set of changes" .
+
+## Evolution properties
+evo:aggregates a owl:ObjectProperty ;
+    rdfs:domain evo:Transformation ;
+    owl:inverseOf evo:aggregated_by .
+
+evo:aggregated_by a owl:ObjectProperty ;
+    owl:inverseOf evo:aggregates .
+
+evo:alters a owl:ObjectProperty ;
+    rdfs:domain evo:Change ;
+    rdfs:range evo:LifeCycle ;
+    owl:inverseOf evo:altered_by .
+
+evo:altered_by a owl:ObjectProperty ;
+    owl:inverseOf evo:alters .
+
+evo:applies a owl:ObjectProperty ;
+    rdfs:domain evo:ITProject;
+    rdfs:range evo:Transformation ;
+    owl:inverseOf evo:applied_by .
+
+evo:applied_by a owl:ObjectProperty ;
+    owl:inverseOf evo:applies .
+
+
+evo:realizes a owl:ObjectProperty ;
+    rdfs:domain evo:Transformation ;
+    rdfs:range evo:Driver ;
+    owl:inverseOf evo:realized_by .
+
+evo:realized_by a owl:ObjectProperty ;
+    owl:inverseOf evo:realizes .
+
+
+evo:hasDriver a owl:ObjectProperty ;
+    rdfs:domain evo:Stakeholder ;
+    rdfs:range evo:Driver .
+
+
+evo:hasLifecycle a owl:ObjectProperty ;
+    rdfs:domain [
+        a owl:Class ;
+        owl:unionOf (
+            archimate:Element
+            archimate:Relationship
+        )
+    ] ;
+    rdfs:range evo:LifeCycle .
+
+
+evo:becameAlive a owl:DatatypeProperty ;
+    rdfs:domain evo:LifeCycle ;
+    rdfs:range xsd:string .
+
+evo:becameDead a owl:DatatypeProperty ;
+    rdfs:domain evo:LifeCycle ;
+    rdfs:range xsd:string .
