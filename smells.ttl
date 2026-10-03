@@ -1,0 +1,70 @@
+@prefix smells: <http://purl.org/eakg/smells#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------
+# Ontology declaration (IRI = the PURL, without '#')
+# ---------------------------------------------------------------
+<http://purl.org/eakg/smells>
+    a owl:Ontology ;
+    rdfs:label "EA Smells Vocabulary"@en ;
+    rdfs:comment """Minimal vocabulary used to flag EAKG elements and relations
+affected by an Enterprise Architecture smell. Smells are indicators of possible
+design problems, not errors. Catalog source: Salentin, J., Hacks, S.: Towards a
+Catalog of Enterprise Architecture Smells, WI 2020."""@en .
+
+# ---------------------------------------------------------------
+# Class and predicate
+# ---------------------------------------------------------------
+smells:EASmell
+    a owl:Class ;
+    rdfs:label "EA Smell"@en ;
+    rdfs:comment "A type of enterprise architecture smell that can be attached to an element or relation."@en .
+
+smells:hasSmell
+    a owl:ObjectProperty ;
+    rdfs:label "has smell"@en ;
+    rdfs:range smells:EASmell ;
+    rdfs:comment """Flags a resource (an ArchiMate element or a relation) as affected by a smell.
+Written by the enrichment queries. No rdfs:domain is declared on purpose: both elements
+and relations can be flagged."""@en .
+
+# ---------------------------------------------------------------
+# The seven smells (individuals)
+# ---------------------------------------------------------------
+smells:CyclicDependency
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Cyclic Dependency"@en ;
+    rdfs:comment "Flags every element on a chain of dependency relationships that leads back to itself."@en .
+
+smells:SharedPersistency
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Shared Persistency"@en ;
+    rdfs:comment "Flags a passive structure (data) element accessed directly by two or more business layer elements."@en .
+
+smells:StrictLayersViolation
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Strict Layers Violation"@en ;
+    rdfs:comment "Flags a relationship that directly connects the business layer and the technology layer, bypassing the application layer."@en .
+
+smells:ChattyService
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Chatty Service"@en ;
+    rdfs:comment "Flags a business or application service connected to at least 10 distinct elements (threshold used in the detection query)."@en .
+
+smells:DataService
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Data Service"@en ;
+    rdfs:comment "Flags a service whose outgoing relationships reach only passive (data) elements and no active structure or behavior elements."@en .
+
+smells:Duplication
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Duplication"@en ;
+    rdfs:comment "Flags distinct elements of the same ArchiMate type that share the same name."@en .
+
+smells:UnnecessaryDocumentation
+    a owl:NamedIndividual, smells:EASmell ;
+    rdfs:label "Unnecessary Documentation"@en ;
+    rdfs:comment "Flags an element whose documentation (rdfs:comment) exceeds 400 characters (threshold used in the detection query)."@en .
